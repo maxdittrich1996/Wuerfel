@@ -1,0 +1,169 @@
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #1e1e1e;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+    user-select: none;
+}
+
+h2 { font-weight: 300; color: #ccc; margin-top: 10px; }
+
+.controls {
+    margin: 15px;
+    display: flex;
+    gap: 15px;
+    z-index: 100;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+#btn-gen { background: #3498db; color: white; }
+#btn-solve { background: #27ae60; color: white; }
+#btn-reset { background: #e67e22; color: white; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* --- BÜHNE --- */
+.main-stage {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 50px;
+    width: 100%;
+    height: 55vh;
+}
+
+/* --- 3D SZENE --- */
+.scene-wrapper {
+    width: 400px;
+    height: 400px;
+    perspective: 1000px;
+    position: relative;
+    cursor: grab;
+    display: flex; align-items: center; justify-content: center;
+}
+.scene-wrapper:active { cursor: grabbing; }
+
+.pivot {
+    position: relative;
+    width: 0; height: 0;
+    transform-style: preserve-3d;
+    transform: rotateX(60deg) rotateZ(-45deg);
+    transition: transform 0.1s;
+}
+
+.tile-spot {
+    position: absolute;
+    width: 60px; height: 60px;
+    margin-left: -30px; margin-top: -30px;
+    background-color: #333;
+    border: 1px solid #555;
+    transform-style: preserve-3d;
+    transition: background 0.3s;
+}
+
+.tile-spot.active-tile {
+    background-color: #e67e22; /* Orange beim Zählen */
+    border-color: #fff;
+}
+
+/* --- WÜRFEL --- */
+.cube {
+    position: absolute;
+    width: 50px; height: 50px;
+    left: 50%; top: 50%;
+    margin-left: -25px; margin-top: -25px;
+    transform-style: preserve-3d;
+    transition: all 0.3s;
+}
+
+.face {
+    position: absolute;
+    width: 50px; height: 50px;
+    border: 1px solid rgba(0,0,0,0.4);
+    background: rgba(41, 128, 185, 1); /* Blau Standard */
+    box-sizing: border-box;
+    transition: background 0.3s;
+}
+
+.f-front  { transform: rotateY(0deg) translateZ(25px); }
+.f-back   { transform: rotateY(180deg) translateZ(25px); }
+.f-right  { transform: rotateY(90deg) translateZ(25px); }
+.f-left   { transform: rotateY(-90deg) translateZ(25px); }
+.f-top    { transform: rotateX(90deg) translateZ(25px); background: #5dade2; }
+.f-bottom { transform: rotateX(-90deg) translateZ(25px); }
+
+/* HIGHLIGHTS */
+
+/* 1. Zähl-Modus (Rot) */
+.cube.highlight-counting .face { 
+    background: #e74c3c !important; 
+    border-color: #c0392b !important; 
+}
+.cube.highlight-counting .f-top { background: #ff7675 !important; }
+
+/* 2. Gesamt-Modus (Grün) - Das Finale */
+.cube.highlight-total .face {
+    background: #2ecc71 !important;
+    border-color: #27ae60 !important;
+    box-shadow: 0 0 5px #2ecc71;
+}
+.cube.highlight-total .f-top { background: #58d68d !important; }
+
+
+/* --- 2D PLAN --- */
+.plan-wrapper {
+    background: #252525; padding: 15px; border-radius: 10px; text-align: center;
+}
+.grid-2d {
+    display: grid; grid-template-columns: repeat(3, 50px);
+    grid-template-rows: repeat(3, 50px); gap: 4px; margin-top: 10px;
+}
+.cell-2d {
+    width: 50px; height: 50px; background: #444; color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold; font-size: 24px; border-radius: 4px;
+}
+.cell-2d.filled { background: #e67e22; color: #fff; }
+
+/* --- ERGEBNIS ANZEIGE --- */
+.calc-container {
+    margin-top: 10px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.calc-text {
+    font-family: monospace;
+    font-size: 24px;
+    color: #ddd;
+}
+
+.final-result {
+    font-size: 36px;
+    font-weight: bold;
+    color: #2ecc71; /* Grün */
+    text-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.hint { position: absolute; bottom: 10px; color: #555; font-size: 12px; }
