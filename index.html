@@ -2,365 +2,68 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Würfel Gesamtzahl Ermitteln</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background-color: #1e1e1e;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            overflow: hidden;
-            user-select: none;
-        }
-
-        h2 { font-weight: 300; color: #ccc; margin-top: 10px; }
-        
-        .controls {
-            margin: 15px;
-            display: flex;
-            gap: 15px;
-            z-index: 100;
-        }
-
-        button {
-            padding: 10px 20px;
-            font-size: 15px;
-            font-weight: bold;
-            cursor: pointer;
-            border: none;
-            border-radius: 6px;
-            transition: background 0.2s;
-        }
-        #btn-gen { background: #3498db; color: white; }
-        #btn-solve { background: #27ae60; color: white; }
-        #btn-reset { background: #e67e22; color: white; }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        /* --- BÜHNE --- */
-        .main-stage {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: center;
-            gap: 50px;
-            width: 100%;
-            height: 55vh;
-        }
-
-        /* --- 3D SZENE --- */
-        .scene-wrapper {
-            width: 400px;
-            height: 400px;
-            perspective: 1000px;
-            position: relative;
-            cursor: grab;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .scene-wrapper:active { cursor: grabbing; }
-
-        .pivot {
-            position: relative;
-            width: 0; height: 0;
-            transform-style: preserve-3d;
-            transform: rotateX(60deg) rotateZ(-45deg);
-            transition: transform 0.1s;
-        }
-
-        .tile-spot {
-            position: absolute;
-            width: 60px; height: 60px;
-            margin-left: -30px; margin-top: -30px;
-            background-color: #333;
-            border: 1px solid #555;
-            transform-style: preserve-3d;
-            transition: background 0.3s;
-        }
-        
-        .tile-spot.active-tile {
-            background-color: #e67e22; /* Orange beim Zählen */
-            border-color: #fff;
-        }
-
-        /* --- WÜRFEL --- */
-        .cube {
-            position: absolute;
-            width: 50px; height: 50px;
-            left: 50%; top: 50%;
-            margin-left: -25px; margin-top: -25px;
-            transform-style: preserve-3d;
-            transition: all 0.3s;
-        }
-
-        .face {
-            position: absolute;
-            width: 50px; height: 50px;
-            border: 1px solid rgba(0,0,0,0.4);
-            background: rgba(41, 128, 185, 1); /* Blau Standard */
-            box-sizing: border-box;
-            transition: background 0.3s;
-        }
-
-        .f-front  { transform: rotateY(0deg) translateZ(25px); }
-        .f-back   { transform: rotateY(180deg) translateZ(25px); }
-        .f-right  { transform: rotateY(90deg) translateZ(25px); }
-        .f-left   { transform: rotateY(-90deg) translateZ(25px); }
-        .f-top    { transform: rotateX(90deg) translateZ(25px); background: #5dade2; }
-        .f-bottom { transform: rotateX(-90deg) translateZ(25px); }
-
-        /* HIGHLIGHTS */
-        
-        /* 1. Zähl-Modus (Rot) */
-        .cube.highlight-counting .face { 
-            background: #e74c3c !important; 
-            border-color: #c0392b !important; 
-        }
-        .cube.highlight-counting .f-top { background: #ff7675 !important; }
-
-        /* 2. Gesamt-Modus (Grün) - Das Finale */
-        .cube.highlight-total .face {
-            background: #2ecc71 !important;
-            border-color: #27ae60 !important;
-            box-shadow: 0 0 5px #2ecc71;
-        }
-        .cube.highlight-total .f-top { background: #58d68d !important; }
-
-
-        /* --- 2D PLAN --- */
-        .plan-wrapper {
-            background: #252525; padding: 15px; border-radius: 10px; text-align: center;
-        }
-        .grid-2d {
-            display: grid; grid-template-columns: repeat(3, 50px);
-            grid-template-rows: repeat(3, 50px); gap: 4px; margin-top: 10px;
-        }
-        .cell-2d {
-            width: 50px; height: 50px; background: #444; color: white;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: bold; font-size: 24px; border-radius: 4px;
-        }
-        .cell-2d.filled { background: #e67e22; color: #fff; }
-
-        /* --- ERGEBNIS ANZEIGE --- */
-        .calc-container {
-            margin-top: 10px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .calc-text {
-            font-family: monospace;
-            font-size: 24px;
-            color: #ddd;
-        }
-
-        .final-result {
-            font-size: 36px;
-            font-weight: bold;
-            color: #2ecc71; /* Grün */
-            text-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
-            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        @keyframes popIn {
-            0% { transform: scale(0); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        .hint { position: absolute; bottom: 10px; color: #555; font-size: 12px; }
-
-    </style>
+    <title>Würfelspiel</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <h2>Aufgabe: Würfel addieren & Gesamtzahl finden</h2>
-
-    <div class="controls">
-        <button id="btn-gen" onclick="generate()">🎲 Neue Aufgabe</button>
-        <button id="btn-solve" onclick="solve()">▶ Lösen & Zählen</button>
-        <button id="btn-reset" onclick="resetView()">↺ Ansicht</button>
+    <!-- Ansicht 1: Modus-Auswahl -->
+    <div id="selection-view">
+        <h1>Wähle einen Spielmodus</h1>
+        <div class="controls">
+            <button id="btn-start-explanation">Erklärmodus</button>
+            <button id="btn-start-solver">Selber lösen</button>
+        </div>
     </div>
 
-    <div class="main-stage">
-        <div class="scene-wrapper" id="sceneWrapper">
-            <div class="pivot" id="pivot">
-                <!-- 3D Inhalt -->
+    <!-- Ansicht 2: Erklärmodus (Original-Spiel) -->
+    <div id="explanation-view" class="hidden">
+        <h2>Aufgabe: Würfel addieren & Gesamtzahl finden</h2>
+        <div class="controls">
+            <button id="btn-gen">🎲 Neue Aufgabe</button>
+            <button id="btn-solve">▶ Lösen & Zählen</button>
+            <button id="btn-reset">↺ Ansicht</button>
+            <button class="btn-back">Zurück zur Auswahl</button>
+        </div>
+        <div class="main-stage">
+            <div class="scene-wrapper" id="sceneWrapper">
+                <div class="pivot" id="pivot">
+                    <!-- 3D-Inhalt wird von JS generiert -->
+                </div>
+            </div>
+            <div class="plan-wrapper">
+                <div style="font-size:12px; color:#888;">BAUPLAN</div>
+                <div class="grid-2d" id="grid2d"></div>
             </div>
         </div>
+        <div class="calc-container" id="calc-container">
+            <div class="calc-text" id="calc-text">Drücke "Lösen"</div>
+        </div>
+        <div class="hint">Linke Maustaste: Drehen • Mausrad: Zoom</div>
+    </div>
 
-        <div class="plan-wrapper">
-            <div style="font-size:12px; color:#888;">BAUPLAN</div>
-            <div class="grid-2d" id="grid2d"></div>
+    <!-- Ansicht 3: Selber-lösen-Modus -->
+    <div id="solver-view" class="hidden">
+        <h2>Wie viele Würfel sind es insgesamt?</h2>
+        <div class="main-stage">
+             <div class="scene-wrapper" id="solverSceneWrapper">
+                <div class="pivot" id="solverPivot">
+                    <!-- 3D-Inhalt wird von JS generiert -->
+                </div>
+            </div>
+        </div>
+        <div class="controls">
+            <input type="number" id="guess-input" placeholder="Deine Antwort..." />
+            <button id="btn-check-guess">Prüfen</button>
+        </div>
+        <div class="calc-container" id="solver-result-container">
+            <!-- Ergebnis wird hier angezeigt -->
+        </div>
+         <div class="controls">
+            <button class="btn-back">Zurück zur Auswahl</button>
         </div>
     </div>
 
-    <div class="calc-container" id="calc-container">
-        <div class="calc-text" id="calc-text">Drücke "Lösen"</div>
-    </div>
-
-    <div class="hint">Linke Maustaste: Drehen • Mausrad: Zoom</div>
-
-<script>
-    const rows = 3; const cols = 3; const spacing = 62;
-    let gridData = [];
-
-    // Elemente
-    const pivot = document.getElementById('pivot');
-    const grid2d = document.getElementById('grid2d');
-    const calcText = document.getElementById('calc-text');
-    const sceneWrapper = document.getElementById('sceneWrapper');
-    const btnGen = document.getElementById('btn-gen');
-    const btnSolve = document.getElementById('btn-solve');
-
-    // View State
-    let rotX = 60; let rotZ = -45; let scale = 1;
-
-    // Init
-    generate();
-    updateView();
-
-    // --- INTERAKTION (Drehen) ---
-    let isDragging = false; let lastX, lastY;
-
-    sceneWrapper.addEventListener('mousedown', e => {
-        isDragging = true; lastX = e.clientX; lastY = e.clientY;
-        sceneWrapper.style.cursor = 'grabbing';
-    });
-    window.addEventListener('mouseup', () => {
-        isDragging = false; sceneWrapper.style.cursor = 'grab';
-    });
-    window.addEventListener('mousemove', e => {
-        if(!isDragging) return;
-        const deltaX = e.clientX - lastX; const deltaY = e.clientY - lastY;
-        rotZ += deltaX * 0.5; rotX -= deltaY * 0.5;
-        if(rotX > 90) rotX = 90; if(rotX < 0) rotX = 0;
-        updateView();
-        lastX = e.clientX; lastY = e.clientY;
-    });
-    sceneWrapper.addEventListener('wheel', e => {
-        e.preventDefault(); scale += e.deltaY * -0.001;
-        scale = Math.min(Math.max(0.5, scale), 2.5);
-        updateView();
-    });
-
-    function resetView() { rotX = 60; rotZ = -45; scale = 1; updateView(); }
-    function updateView() {
-        pivot.style.transform = `scale(${scale}) rotateX(${rotX}deg) rotateZ(${rotZ}deg) translateZ(-40px)`;
-    }
-
-    // --- LOGIK ---
-
-    function generate() {
-        pivot.innerHTML = ''; grid2d.innerHTML = '';
-        calcText.innerHTML = 'Bereit zum Zählen?';
-        calcText.className = 'calc-text'; // Reset Style
-        gridData = [];
-        btnSolve.disabled = false; btnGen.disabled = false;
-
-        const offset = 1; 
-
-        for(let r=0; r<rows; r++) {
-            for(let c=0; c<cols; c++) {
-                const count = Math.floor(Math.random() * 4);
-                gridData.push({r, c, count});
-
-                const posX = (c - offset) * spacing;
-                const posY = (r - offset) * spacing;
-
-                // 3D Tile
-                const tile = document.createElement('div');
-                tile.className = 'tile-spot';
-                tile.id = `tile-${r}-${c}`;
-                tile.style.transform = `translateX(${posX}px) translateY(${posY}px)`;
-                
-                // Würfel
-                for(let i=0; i<count; i++) {
-                    const cube = document.createElement('div');
-                    cube.className = `cube cube-g-${r}-${c} all-cubes`; // 'all-cubes' Klasse für Selektion am Ende
-                    const z = (i * 50) + 25;
-                    cube.style.transform = `translateZ(${z}px)`;
-                    cube.innerHTML = `<div class="face f-front"></div><div class="face f-back"></div><div class="face f-right"></div><div class="face f-left"></div><div class="face f-top"></div><div class="face f-bottom"></div>`;
-                    tile.appendChild(cube);
-                }
-                pivot.appendChild(tile);
-
-                // 2D Grid
-                const cell = document.createElement('div');
-                cell.className = 'cell-2d';
-                cell.id = `cell-${r}-${c}`;
-                grid2d.appendChild(cell);
-            }
-        }
-    }
-
-    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-    async function solve() {
-        btnGen.disabled = true; btnSolve.disabled = true;
-        
-        // Reset
-        document.querySelectorAll('.cell-2d').forEach(e => { e.innerText = ''; e.classList.remove('filled'); });
-        document.querySelectorAll('.cube').forEach(c => {
-            c.classList.remove('highlight-counting');
-            c.classList.remove('highlight-total');
-        });
-        calcText.className = 'calc-text'; // Reset styles
-
-        let sum = 0;
-        let eq = "";
-
-        // 1. Schrittweises Zählen
-        for(let i=0; i<gridData.length; i++) {
-            const d = gridData[i];
-            const tile = document.getElementById(`tile-${d.r}-${d.c}`);
-            const cubes = document.querySelectorAll(`.cube-g-${d.r}-${d.c}`);
-            const cell = document.getElementById(`cell-${d.r}-${d.c}`);
-
-            // Markieren (Rot)
-            tile.classList.add('active-tile');
-            cubes.forEach(c => c.classList.add('highlight-counting'));
-
-            await sleep(300);
-
-            // 2D Plan Update
-            cell.innerText = d.count;
-            cell.classList.add('filled');
-
-            // Rechnen
-            sum += d.count;
-            if(i>0) eq += " + ";
-            eq += d.count;
-            calcText.innerHTML = eq + " = ?";
-
-            await sleep(400);
-
-            // Demarkieren
-            tile.classList.remove('active-tile');
-            cubes.forEach(c => c.classList.remove('highlight-counting'));
-            
-            await sleep(100);
-        }
-
-        // 2. Das Finale (Gesamtzahl)
-        calcText.innerHTML = `${eq} = ...`;
-        await sleep(500);
-
-        // Alle Würfel gleichzeitig Grün machen
-        const allCubes = document.querySelectorAll('.all-cubes');
-        allCubes.forEach(c => c.classList.add('highlight-total'));
-
-        // Großes Ergebnis anzeigen
-        calcText.innerHTML = `GESAMT: ${sum} WÜRFEL!`;
-        calcText.className = 'final-result'; // CSS Animation Klasse
-
-        btnGen.disabled = false; btnSolve.disabled = false;
-    }
-
-</script>
+    <script src="script.js" defer></script>
 </body>
 </html>

@@ -166,4 +166,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     100% { transform: scale(1); opacity: 1; }
 }
 
+
 .hint { position: absolute; bottom: 10px; color: #555; font-size: 12px; }
+
+.hidden {
+    display: none;
+}
