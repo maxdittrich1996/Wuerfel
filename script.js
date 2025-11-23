@@ -38,6 +38,89 @@ document.addEventListener('DOMContentLoaded', () => {
     let isSolverInitialized = false;
     let solverCubeCount = 0;
 
+    // --- 3D CONTROLS (REUSABLE) ---
+    function setup3dControls(sceneWrapper, updateView, state) {
+        let isDragging = false;
+        let lastX, lastY;
+        let initialPinchDistance = null;
+
+        const getDist = (t1, t2) => Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+
+        // Mouse Events
+        sceneWrapper.addEventListener('mousedown', e => {
+            e.preventDefault();
+            isDragging = true;
+            lastX = e.clientX;
+            lastY = e.clientY;
+            sceneWrapper.style.cursor = 'grabbing';
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                sceneWrapper.style.cursor = 'grab';
+            }
+        });
+
+        window.addEventListener('mousemove', e => {
+            if (!isDragging) return;
+            e.preventDefault();
+            const deltaX = e.clientX - lastX;
+            const deltaY = e.clientY - lastY;
+            state.rotZ += deltaX * 0.5;
+            state.rotX -= deltaY * 0.5;
+            state.rotX = Math.max(0, Math.min(90, state.rotX)); // Clamp rotX
+            updateView();
+            lastX = e.clientX;
+            lastY = e.clientY;
+        });
+
+        sceneWrapper.addEventListener('wheel', e => {
+            e.preventDefault();
+            state.scale += e.deltaY * -0.001;
+            state.scale = Math.min(Math.max(0.5, state.scale), 2.5);
+            updateView();
+        });
+
+        // Touch Events
+        sceneWrapper.addEventListener('touchstart', e => {
+            if (e.touches.length === 1) {
+                isDragging = true;
+                lastX = e.touches[0].clientX;
+                lastY = e.touches[0].clientY;
+            } else if (e.touches.length === 2) {
+                isDragging = false; // Stop rotation when pinching
+                initialPinchDistance = getDist(e.touches[0], e.touches[1]);
+            }
+        }, { passive: false });
+
+        sceneWrapper.addEventListener('touchend', e => {
+            isDragging = false;
+            initialPinchDistance = null;
+        });
+
+        sceneWrapper.addEventListener('touchmove', e => {
+            e.preventDefault();
+            if (isDragging && e.touches.length === 1) {
+                const deltaX = e.touches[0].clientX - lastX;
+                const deltaY = e.touches[0].clientY - lastY;
+                state.rotZ += deltaX * 0.5;
+                state.rotX -= deltaY * 0.5;
+                state.rotX = Math.max(0, Math.min(90, state.rotX));
+                updateView();
+                lastX = e.touches[0].clientX;
+                lastY = e.touches[0].clientY;
+            } else if (e.touches.length === 2 && initialPinchDistance) {
+                const newDist = getDist(e.touches[0], e.touches[1]);
+                const scaleFactor = newDist / initialPinchDistance;
+                state.scale *= scaleFactor;
+                state.scale = Math.min(Math.max(0.5, state.scale), 2.5);
+                updateView();
+                initialPinchDistance = newDist;
+            }
+        }, { passive: false });
+    }
+
 
     // --- EXPLANATION MODE ---
     function initializeExplanationMode() {
@@ -49,22 +132,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const btnSolve = document.getElementById('btn-solve');
         const btnReset = document.getElementById('btn-reset');
 
-        let rotX = 60;
-        let rotZ = -45;
-        let scale = 1;
+        const viewState = { rotX: 60, rotZ: -45, scale: 1 };
         let gridData = [];
-        const rows = 3;
-        const cols = 3;
-        const spacing = 62;
+        const rows = 3, cols = 3, spacing = 62;
 
         const updateView = () => {
-            pivot.style.transform = `scale(${scale}) rotateX(${rotX}deg) rotateZ(${rotZ}deg) translateZ(-40px)`;
+            pivot.style.transform = `scale(${viewState.scale}) rotateX(${viewState.rotX}deg) rotateZ(${viewState.rotZ}deg) translateZ(-40px)`;
         };
 
         const resetView = () => {
-            rotX = 60;
-            rotZ = -45;
-            scale = 1;
+            viewState.rotX = 60;
+            viewState.rotZ = -45;
+            viewState.scale = 1;
             updateView();
         };
 
@@ -116,13 +195,8 @@ document.addEventListener('DOMContentLoaded', () => {
             btnGen.disabled = true;
             btnSolve.disabled = true;
 
-            document.querySelectorAll('.cell-2d').forEach(e => {
-                e.innerText = '';
-                e.classList.remove('filled');
-            });
-            document.querySelectorAll('.cube').forEach(c => {
-                c.classList.remove('highlight-counting', 'highlight-total');
-            });
+            document.querySelectorAll('.cell-2d').forEach(e => { e.innerText = ''; e.classList.remove('filled'); });
+            document.querySelectorAll('.cube').forEach(c => c.classList.remove('highlight-counting', 'highlight-total'));
             calcText.className = 'calc-text';
 
             let sum = 0;
@@ -164,40 +238,11 @@ document.addEventListener('DOMContentLoaded', () => {
             btnGen.disabled = false;
         }
 
-        // --- Event Listeners for Explanation Mode ---
         btnGen.addEventListener('click', generate);
         btnSolve.addEventListener('click', solve);
         btnReset.addEventListener('click', resetView);
 
-        let isDragging = false,
-            lastX, lastY;
-        sceneWrapper.addEventListener('mousedown', e => {
-            isDragging = true;
-            lastX = e.clientX;
-            lastY = e.clientY;
-            sceneWrapper.style.cursor = 'grabbing';
-        });
-        window.addEventListener('mouseup', () => {
-            isDragging = false;
-            sceneWrapper.style.cursor = 'grab';
-        });
-        window.addEventListener('mousemove', e => {
-            if (!isDragging) return;
-            const deltaX = e.clientX - lastX;
-            const deltaY = e.clientY - lastY;
-            rotZ += deltaX * 0.5;
-            rotX -= deltaY * 0.5;
-            rotX = Math.max(0, Math.min(90, rotX)); // Clamp rotX
-            updateView();
-            lastX = e.clientX;
-            lastY = e.clientY;
-        });
-        sceneWrapper.addEventListener('wheel', e => {
-            e.preventDefault();
-            scale += e.deltaY * -0.001;
-            scale = Math.min(Math.max(0.5, scale), 2.5);
-            updateView();
-        });
+        setup3dControls(sceneWrapper, updateView, viewState);
 
         generate();
         updateView();
@@ -208,47 +253,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- SOLVER MODE ---
     function initializeSolverMode() {
         const sceneWrapper = document.getElementById('solverSceneWrapper');
-        let rotX = 60;
-        let rotZ = -45;
-        let scale = 1;
+        const viewState = { rotX: 60, rotZ: -45, scale: 1 };
 
         const updateView = () => {
             const pivot = document.getElementById('solverPivot');
             if (pivot) {
-                pivot.style.transform = `scale(${scale}) rotateX(${rotX}deg) rotateZ(${rotZ}deg) translateZ(-40px)`;
+                pivot.style.transform = `scale(${viewState.scale}) rotateX(${viewState.rotX}deg) rotateZ(${viewState.rotZ}deg) translateZ(-40px)`;
             }
         };
 
-        let isDragging = false,
-            lastX, lastY;
-        sceneWrapper.addEventListener('mousedown', e => {
-            isDragging = true;
-            lastX = e.clientX;
-            lastY = e.clientY;
-            sceneWrapper.style.cursor = 'grabbing';
-        });
-        window.addEventListener('mouseup', () => {
-            isDragging = false;
-            sceneWrapper.style.cursor = 'grab';
-        });
-        window.addEventListener('mousemove', e => {
-            if (!isDragging) return;
-            const deltaX = e.clientX - lastX;
-            const deltaY = e.clientY - lastY;
-            rotZ += deltaX * 0.5;
-            rotX -= deltaY * 0.5;
-            rotX = Math.max(0, Math.min(90, rotX));
-            updateView();
-            lastX = e.clientX;
-            lastY = e.clientY;
-        });
-        sceneWrapper.addEventListener('wheel', e => {
-            e.preventDefault();
-            scale += e.deltaY * -0.001;
-            scale = Math.min(Math.max(0.5, scale), 2.5);
-            updateView();
-        });
-
+        setup3dControls(sceneWrapper, updateView, viewState);
         document.getElementById('btn-check-guess').addEventListener('click', checkGuess);
 
         isSolverInitialized = true;
@@ -259,14 +273,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const pivot = document.getElementById('solverPivot');
         pivot.innerHTML = '';
         solverCubeCount = 0;
-        const rows = 3;
-        const cols = 3;
-        const spacing = 62;
-        const offset = 1;
+        const rows = 3, cols = 3, spacing = 62, offset = 1;
 
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
-                const count = Math.floor(Math.random() * 5); // A bit more variance
+                const count = Math.floor(Math.random() * 5);
                 solverCubeCount += count;
 
                 const posX = (c - offset) * spacing;
@@ -287,7 +298,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 pivot.appendChild(tile);
             }
         }
-        // Reset input and result
         document.getElementById('guess-input').value = '';
         document.getElementById('solver-result-container').innerHTML = '';
     }
@@ -303,7 +313,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (guess === solverCubeCount) {
             resultContainer.innerHTML = `<p style="color: #2ecc71; font-weight: bold;">Richtig! Es sind ${solverCubeCount} Würfel.</p>`;
-            // Maybe show a "New Puzzle" button
         } else {
             const diff = guess > solverCubeCount ? 'zu hoch' : 'zu niedrig';
             resultContainer.innerHTML = `<p style="color: #e74c3c;">Leider falsch. Dein Tipp ist ${diff}.</p>`;
